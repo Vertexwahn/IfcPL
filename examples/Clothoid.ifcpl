@@ -1,0 +1,205 @@
+module Clothoid;
+
+//import IFC4X1.exp;
+import Math;
+import ArbitraryTransitionCurve;
+import Debug;
+
+class Vector2DImpl : IVector2D {
+	public Vector2DImpl(const double x, const double y) {
+		this.x = x;
+		this.y = y;
+	}
+
+	public double X() const {
+		return x;
+	}
+	public double Y() const {
+		return y;
+	}
+	
+	private double x;
+	private double y;
+}
+
+class Clothoid : IArbitraryTransitionCurve {
+	public Clothoid(IfcPropertySet properties) { // injection
+		startPosition_ = properties.getVector2d("startPosition");  // special syntax for properties
+		startDirection_ = properties.getDouble("startDirection");
+		startCurvature_ = properties.getDouble("startCurvature");
+		counterClockwise_ = properties.getBoolean("counterClockwise");
+		clothoidConstant_ = properties.getDouble("clothoidConstant");
+		entry_ = properties.getBoolean("entry");
+		length_ = properties.getDouble("length");
+		
+		startL_ = clothoidConstant_ * clothoidConstant_ * startCurvature_;
+		
+		if (entry_)
+			endL_ = startL_ + length_;
+		else
+			endL_ = max(startL_ - length_, 0.0);
+	}
+	
+	public double getLength() const override {
+		return abs(endL_ - startL_);
+	}
+	
+	public IVector2D getPostion(const double lerpParameter) const override {
+		Vector2d localPosition = new Vector2d();
+		Vector2d localOffset = new Vector2d();
+		
+		double L = startL_ + (endL_ - startL_) * lerpParameter;
+		
+		localPosition = computeLocalPosition(L);
+		
+		double angle;
+
+		Vector2d position;
+		angle = computeTau(startL_, clothoidConstant_);
+		localOffset = localPosition - computeLocalPosition(startL_);
+		
+		if (!isEntry())	{
+			angle *= -1;
+			localOffset.x() *= -1;
+		}
+
+		if (!counterClockwise_)	{
+			angle *= -1;
+		}
+
+		position = startPosition_ + createRotationMatrix(startDirection_ - angle) * localOffset;
+	
+		return new Vector2DImpl(position.x(), position.y());
+	}
+	
+	public double getCurvature(const double lerpParamter) const override {
+		double L = startL_ + (endL_ - startL_) * lerpParameter;
+		return L / (A * A);
+	}
+				
+	private double computeX(const double L, const double A) const {
+		double x = L;
+		const int iterations = 5;
+
+		for (int i = 1; i < iterations+1; i++) {
+			double sign = i % 2 == 0 ? 1 : -1;
+
+			double L_exponent = 5+(i-1)*4;
+			double A_exponent = i*4;
+			double factor = factorial(2*i) * pow(2.0, 2*i) * (5+(i-1)*4);
+			factor = factor + 3.0;
+			double debug = pow(A, A_exponent);
+			x += sign * pow(L, L_exponent) / (factor * debug);
+		}
+
+		return x;
+	}
+	
+	private double computeY(const double L, const double A)	const {
+		double y = 0;
+		const int iterations = 5;
+
+		for (int i = 0; i < iterations; i++)
+		{
+			double sign = i % 2 == 0 ? 1 : -1;
+
+			double L_exponent = 3+i*4;
+			double A_exponent = 2+i*4;
+			double factor = factorial(2*i+1)  * 
+				pow(2.0, i*2) * 2  * 
+				(A_exponent + 1);
+
+			y += sign * pow(L, L_exponent) / (factor * pow(A, A_exponent));
+		}
+
+		return y;
+	}
+	
+	private bool isEntry() const {
+		return entry_; //return startL_ < endL_;
+	}
+	
+	private Vector2d computeLocalPosition(const double L) const	{
+		Vector2d localPosition = new Vector2d();
+
+		localPosition.x() = computeX(L, clothoidConstant_);
+		localPosition.y() = computeY(L, clothoidConstant_);
+
+		return localPosition;
+	}
+	
+	private double computeTau(const double L, const double A) const {
+		return L*L / (2 * A*A);
+	}
+	
+	// injected data
+	private Vector2d	startPosition_;
+	private double		startDirection_;
+	private double 		startCurvature_;
+	private bool		counterClockwise_;
+	private double		clothoidConstant_;
+	private bool		entry_;
+	private double		length_;
+	
+	// misc
+	private double		startL_;
+	private double		endL_;
+}
+/*
+void main2()
+{
+	int id = 1000;
+
+	IfcPropertySingleValue startCurvature = new IfcPropertySingleValue(id++);
+	startCurvature.Name = new IfcIdentifier("startCurvature");
+	startCurvature.NominalValue = new IfcReal(0.0);
+	
+	IfcPropertySingleValue counterClockwise = new IfcPropertySingleValue(id++);
+	counterClockwise.Name = new IfcIdentifier("counterClockwise");
+	counterClockwise.NominalValue = new IfcBoolean(true);
+	
+	IfcPropertySingleValue clothoidConstant = new IfcPropertySingleValue(id++);
+	clothoidConstant.Name = new IfcIdentifier("clothoidConstant");
+	clothoidConstant.NominalValue = new IfcReal(19.570000000000000284);
+	
+	IfcPropertySingleValue entry = new IfcPropertySingleValue(id++);
+	entry.Name = new IfcIdentifier("entry");
+	entry.NominalValue = new IfcBoolean(true);
+	
+	// Boxing derived parameters
+	IfcLengthMeasure x = new IfcLengthMeasure(-243.77199999999999136);
+	IfcLengthMeasure y = new IfcLengthMeasure(-3.0327000000000001734);
+	// IfcCartesianPoint is not supported by IfcPropertySet
+	IfcPropertyListValue StartPoint = new IfcPropertyListValue(id++);
+	StartPoint.Name = new IfcIdentifier("StartPoint");
+	StartPoint.ListValues.add(x);
+	StartPoint.ListValues.add(y);
+	
+	IfcPropertySingleValue StartDirection = new IfcPropertySingleValue(id++);
+	StartDirection.Name = new IfcIdentifier("StartDirection");
+	StartDirection.NominalValue = new IfcPlaneAngleMeasure(5.07);
+	
+	IfcPropertySingleValue SegmentLength = new IfcPropertySingleValue(id++);
+	SegmentLength.Name = new IfcIdentifier("SegmentLength");
+	// IfcPositiveLengthMeasure
+	SegmentLength.NominalValue = new IfcLengthMeasure(12.43); 
+	
+	IfcPropertySet ps = new IfcPropertySet(id++);
+	ps.Name = new IfcLabel("Initialization Parameters");
+	ps.HasProperties.add(startCurvature);
+	ps.HasProperties.add(counterClockwise);
+	ps.HasProperties.add(clothoidConstant);
+	ps.HasProperties.add(entry);
+	// Extend property set
+	ps.HasProperties.add(StartPoint);
+	ps.HasProperties.add(StartDirection);
+	ps.HasProperties.add( SegmentLength);
+	
+	IFC4X1Model model = new IFC4X1Model();
+	model.insertEntity(startCurvature);	
+	model.insertEntity(ps);
+	
+	IfcStepWriter writer = new IfcStepWriter();
+	writer.write("filename.ifc", model);
+}
+*/

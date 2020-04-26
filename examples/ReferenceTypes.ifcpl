@@ -1,0 +1,10 @@
+module ReferenceTypes;
+
+import Core;
+
+void main() {
+	int a = 5;
+	ref int b = a;
+	b = 6;
+	print(a); // Ausgabe: 6
+}

@@ -1,0 +1,24 @@
+module ImportedTypes;
+
+import Debug;
+import IFC4X1.exp;
+
+void main() {
+	IFC4X1Model model = new IFC4X1Model();
+	
+	int id = 100;
+	IfcCartesianPoint point = new IfcCartesianPoint(id++);
+	
+	IfcLengthMeasure x = new IfcLengthMeasure(1.0);
+	IfcLengthMeasure y = new IfcLengthMeasure(2.0);
+	IfcLengthMeasure z = new IfcLengthMeasure(3.0);
+	
+	point.Coordinates.add(x);
+	point.Coordinates.add(y);
+	point.Coordinates.add(z);
+		
+	model.insertEntity(point);	
+	
+	IfcStepWriter writer = new IfcStepWriter();
+	writer.write("filename.ifc", model);
+}

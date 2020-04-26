@@ -1,0 +1,17 @@
+module Vector4d;
+
+import Core;
+import Math;
+
+void main() {
+	Vector4d a = new Vector4d(1, 0, 0, 1);
+	Vector4d b = new Vector4d(0, 1, 0, 0);
+	
+	Vector4d c = a + b; // (1, 1, 0, 1)
+	
+	Matrix44d rot = createRotationMatrixZ(degreeToRadian(180.0));
+	
+	c = rot * c; // (-1, -1, 0, 2)
+		
+	print(c); // prints (-1, -1, 0, 2)
+}

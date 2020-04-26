@@ -1,0 +1,133 @@
+module RALChecker;
+
+// import IChecker;
+import Core;
+import IFC4X1.exp;
+
+/*
+interface IRuleViolation {
+	double getStation();
+	string getDescription();
+}
+
+interface ICheckResult {
+	int getRuleViolationCount();
+	IRuleViolation getRuleViolationByIndex(const int index);
+}
+
+interface IChecker
+{
+	ICheckResult check();
+}
+*/
+
+class RALChecker {
+	private double currentStation_ = 0;
+	private IfcAlignment alignment_;
+	
+	public RALChecker(IfcAlignment a) {
+		alignment_ = a;
+	}
+	
+	public void check() {
+		visit(alignment_);
+	}
+	
+	private void visit(IfcCircularArcSegment2D arcSegment) {
+		bool reportError = false;
+
+		if(arcSegment.Radius.getValue() < 500) {
+			print("Rule (Radius >= 500) is violated!");
+			reportError = true;
+		}
+
+		if(arcSegment.SegmentLength.getValue() < 70) {
+			print("Rule (Length >= 70) is violated!");
+			reportError = true;
+		}
+
+		if(reportError) {
+			if(alignment_.Name != null) {
+				print("Alignment name: " + alignment_.Name.getValue());
+			}
+
+			print("Station: " + currentStation_);
+		}
+	}
+
+	private void visit(IfcAlignment2DHorizontalSegment hs) {
+		IfcCurveSegment2D cs = hs.CurveGeometry;
+		
+		if(cs instanceof IfcCircularArcSegment2D ) {
+			IfcCircularArcSegment2D arcSegment = 
+				 cast<IfcCircularArcSegment2D>(cs);
+			visit(arcSegment);
+		}
+		
+		currentStation_ += cs.SegmentLength.getValue() ;
+	}
+
+	private void visit(IfcAlignmentCurve ac) {
+		IfcAlignment2DHorizontal ha = ac.Horizontal;
+		currentStation_ = ha.StartDistAlong.getValue() ;
+		for(int i = 0; i < ha.Segments.count(); i++) {
+			visit(ha.Segments[i]);
+		}
+	}
+
+	private void visit(IfcAlignment a) {
+		if(a.Axis instanceof IfcAlignmentCurve) {
+			IfcAlignmentCurve ac = cast<IfcAlignmentCurve>(a.Axis);
+			visit(ac);
+		}
+		else {
+			print("Unkown alignment curve type.");
+		}
+	}	
+}
+
+void main(string[] args) {
+	if(args.count() != 1) {
+		print("Program called with invalid number of arguments");
+		return;
+	}
+		
+	string filename = args[0];
+	
+	if(!exists(filename)) {
+		print("File does not exist.");
+		return;
+	}
+	
+	print("Try to load " + filename);
+	IfcStepReader reader = new IfcStepReader();
+	IFC4X1Model model = reader.read(filename);
+	
+	for(int i = 0; i < model.getEntitiesCount(); i++) {
+		IFC4X1Entity e = model.getEntityByIndex(i);
+		/*
+		if(e instanceof IfcProject) {
+			IfcProject project = cast<IfcProject>(e);
+			
+			IfcUnitAssignment unitAssignment = project->UnitsInContext;
+			
+			for(int i = 0, i < unitAssignment.Units.count(); ++i) {
+				if(unitAssignment.Units[i] instanceof IfcSIUnit) {
+					IfcSIUnit unit = unitAssignment.Units[i];
+					if(unit.UnitType ==  IfcUnitEnum.LENGTHUNIT) {
+						print("Assuming meter as length unit");
+						assert(unit.Prefix == null);
+						assert(unit.Name == IfcSIUnitName.METRE);
+					}
+				}
+			}
+		}
+		*/
+		if(e instanceof IfcAlignment) {
+			IfcAlignment a = cast<IfcAlignment>(e);
+			
+			RALChecker checker = new RALChecker(a);
+			checker.check();
+		}
+	}
+}

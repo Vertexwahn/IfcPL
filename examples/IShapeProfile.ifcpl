@@ -1,0 +1,162 @@
+module IShapeProfile;
+
+// import ParametricProfileDescripton;
+import IFC4X1.exp;
+
+interface IParametricProfileDescripton {
+	IfcPropertySet getParameters();
+	IfcProfileDef getBasicProfileDescirption();
+}
+
+import Debug;
+
+class IShapeProfile : IParametricProfileDescripton {
+	public IShapeProfile(IfcPropertySet ps) {
+		for(int i = 0; i < ps.HasProperties.count(); ++i) {
+			if (ps.HasProperties[i] instanceof IfcPropertySingleValue) {
+				IfcPropertySingleValue s = cast<IfcPropertySingleValue>(ps.HasProperties[i]);
+				IfcIdentifier s_id = s.Name;
+				
+				if(s_id.value == "OverallWidth") {
+					IfcReal ifcReal = cast<IfcReal>(s.NominalValue);
+					OverallWidth_ = ifcReal.value;
+				}
+				
+				if(s_id.value == "OverallDepth") {
+					IfcReal ifcReal = cast<IfcReal>(s.NominalValue);
+					OverallDepth_ = ifcReal.value;
+				}
+				
+				if(s_id.value == "WebThickness") {
+					IfcReal ifcReal = cast<IfcReal>(s.NominalValue);
+					WebThickness_ = ifcReal.value;
+				}
+				
+				if(s_id.value == "FlangeThickness") {
+					IfcReal ifcReal = cast<IfcReal>(s.NominalValue);
+					FlangeThickness_ = ifcReal.value;
+				}
+			}
+		}	
+		
+		print(OverallWidth_);
+	}
+
+	public void write() {
+		IfcStepWriter writer = new IfcStepWriter();
+		writer.write("ishapeprofile.ifc", model_);
+	}
+	
+	public IfcPropertySet getParameters() {
+		IfcPropertySingleValue OverallWidth = new IfcPropertySingleValue();
+		OverallWidth.Name = new IfcIdentifier("OverallWidth");
+		OverallWidth.NominalValue = new IfcReal(OverallWidth_);
+		
+		IfcPropertySingleValue OverallDepth = new IfcPropertySingleValue();
+		OverallDepth.Name = new IfcIdentifier("OverallDepth");
+		OverallDepth.NominalValue = new IfcReal(OverallDepth_);
+		
+		IfcPropertySingleValue WebThickness = new IfcPropertySingleValue();
+		WebThickness.Name = new IfcIdentifier("WebThickness");
+		WebThickness.NominalValue = new IfcReal(WebThickness_);
+		
+		IfcPropertySingleValue FlangeThickness = new IfcPropertySingleValue();
+		FlangeThickness.Name = new IfcIdentifier("FlangeThickness");
+		FlangeThickness.NominalValue = new IfcReal(FlangeThickness_);
+		
+		IfcPropertySet ps = new IfcPropertySet();
+		ps.Name = new IfcLabel("Initialization Parameters");
+		ps.HasProperties.add(OverallWidth);
+		ps.HasProperties.add(OverallDepth);
+		ps.HasProperties.add(WebThickness);
+		ps.HasProperties.add(FlangeThickness);
+		
+		return ps;
+	}
+	
+	private IfcCartesianPoint createPoint(double x, double y) {
+		IfcCartesianPoint point = new IfcCartesianPoint(id++);
+		
+		point.Coordinates.add(new IfcLengthMeasure(x));
+		point.Coordinates.add(new IfcLengthMeasure(y));
+		
+		model_.insertEntity(point);
+
+		return point;
+	}
+	
+	public IfcProfileDef getBasicProfileDescirption() {
+		IfcPolyline polyline = new IfcPolyline(id++);
+		model_.insertEntity(polyline);
+		
+		double Left = -OverallWidth_ / 2.0;
+		double Right = OverallWidth_ / 2.0;
+		double Top = OverallDepth_ / 2.0;
+		double Bottom = -OverallDepth_ / 2.0;
+		
+		polyline.Points.add(createPoint(Left,Top) ); // coordinate (A)
+		polyline.Points.add(createPoint(Right,Top) ); // coordinate (B)
+		polyline.Points.add(createPoint(Right,Top-FlangeThickness_)); // coordinate (C)
+		polyline.Points.add(createPoint(WebThickness_*0.5,Top-FlangeThickness_) ); // coordinate (D)
+		polyline.Points.add(createPoint(WebThickness_*0.5,Bottom+FlangeThickness_) ); // coordinate (E)
+		polyline.Points.add(createPoint(Right,Bottom+FlangeThickness_) ); // coordinate (F)
+		polyline.Points.add(createPoint(Right,Bottom) ); // coordinate (G)
+		polyline.Points.add(createPoint(Left,Bottom) ); // coordinate (H)
+		polyline.Points.add(createPoint(Left,Bottom+FlangeThickness_) ); // coordinate (I)
+		polyline.Points.add(createPoint(-WebThickness_*0.5,Bottom+FlangeThickness_) ); // coordinate (J)
+		polyline.Points.add(createPoint(-WebThickness_*0.5,Top-FlangeThickness_) ); // coordinate (K)
+		polyline.Points.add(createPoint(Left,Top-FlangeThickness_) ); // coordinate (L)
+		// close profile
+		polyline.Points.add(createPoint(Left,Top)); // coordinate (A)
+						
+		IfcArbitraryClosedProfileDef profile = new IfcArbitraryClosedProfileDef(id++);
+		model_.insertEntity(profile);
+		
+		//profile.ProfileType = new IfcProfileTypeEnum(IfcProfileTypeEnum.AREA);
+		profile.OuterCurve = polyline;
+		
+		return profile;
+	}
+	
+	private double OverallWidth_;
+	private double OverallDepth_;
+	private double WebThickness_;
+	private double FlangeThickness_;
+	
+	private int id = 200000;
+	
+	
+	private IFC4X1Model model_ = new IFC4X1Model();
+}
+
+void main()
+{
+	int id = 100;
+	
+	IfcPropertySingleValue OverallWidth = new IfcPropertySingleValue(id++);
+	OverallWidth.Name = new IfcIdentifier("OverallWidth");
+	OverallWidth.NominalValue = new IfcReal(100.0);
+	
+	IfcPropertySingleValue OverallDepth = new IfcPropertySingleValue(id++);
+	OverallDepth.Name = new IfcIdentifier("OverallDepth");
+	OverallDepth.NominalValue = new IfcReal(220.0);
+	
+	IfcPropertySingleValue WebThickness = new IfcPropertySingleValue(id++);
+	WebThickness.Name = new IfcIdentifier("WebThickness");
+	WebThickness.NominalValue = new IfcReal(5.9);
+	
+	IfcPropertySingleValue FlangeThickness = new IfcPropertySingleValue(id++);
+	FlangeThickness.Name = new IfcIdentifier("FlangeThickness");
+	FlangeThickness.NominalValue = new IfcReal(9.2);
+	
+	IfcPropertySet ps = new IfcPropertySet(id++);
+	ps.Name = new IfcLabel("Initialization Parameters");
+	ps.HasProperties.add(OverallWidth);
+	ps.HasProperties.add(OverallDepth);
+	ps.HasProperties.add(WebThickness);
+	ps.HasProperties.add(FlangeThickness);
+	
+	IShapeProfile profile = new IShapeProfile(ps);
+	profile.getBasicProfileDescirption();
+	profile.write();
+}

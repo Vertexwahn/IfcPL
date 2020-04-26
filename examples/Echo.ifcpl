@@ -1,0 +1,9 @@
+module Echo;
+
+import Core;
+
+void main(string[] args) {
+	if(args.count() > 0) {
+		print(args[0]); // Outputs first command line argument
+	}
+}

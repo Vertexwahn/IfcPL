@@ -1,0 +1,105 @@
+\documentclass{article}
+\usepackage{syntax}
+
+\begin{document}
+\paragraph{IFCPL Grammatik}
+\begin{grammar}
+
+<program> ::= <stmts>
+
+<stmts> ::= <stmt>
+\alt <stmts> <stmt>
+
+<import_stmt> ::= 'import' <ident>
+\alt 'import' <ident> '.' <ident> ';'
+
+<using_stmt> ::= 'using' ident ';'
+\alt 'using' <ident> '.' <ident> ';'
+
+<stmt> ::= var_decl ';' \alt <class_decl> \alt <if_stmt> \alt <meth_decl> ';'
+\alt <extern_decl> ';'
+\alt <expr> ';' 
+\alt 'return' <expr> ';' 
+\alt <import_stmt>
+\alt <using_stmt>
+\alt <postfix_stmt> ';'
+\alt <for_stmt>
+\alt <block>
+
+<postfix_stmt> ::= <ident> '++'
+	
+<class_decl> ::= 'class' <ident> '\{' '\}'
+\alt 'class' <ident> '\{' <class_body> '\}'
+\alt 'class' <ident> ':' <ident> '\{' <class_body> '\}'
+
+
+<class_body> ::= <meth_decl>
+\alt <class_body> <meth_decl>
+\alt <access_modifier> <ident> '(' <meth_decl_args> ')' <block>
+\alt <class_body> <access_modifier> <var_decl> ';' 
+
+<for_stmt> ::=	'for' '(' <var_decl> ';' <expr> ';' <postfix_stmt> ')' '\{' <stmts> '\}' 
+\alt 'for' '(' <var_decl> ';' <expr> ';' <postfix_stmt> ')' '\{'  '\}' 
+
+<if_stmt> ::= 'if' '(' <expr> ')' <stmt> 'else' stmt 
+\alt 'if' '(' <expr> ')' <stmt>
+
+<block> ::= '\{' <stmts> '\}'
+\alt '\{' '\}'
+
+<var_decl> ::= <ident> <ident>
+\alt 'const' <ident> <ident>
+\alt <ident> <ident> '=' <expr>
+\alt 'const' <ident> <ident> '=' <expr>
+
+<extern_decl> ::= 'extern' <ident> <ident> '(' <meth_decl_args> ')'
+
+<meth_decl> ::= <access_modifier> <ident ident> '(' <meth_decl_args> ')' <block>
+\alt <access_modifier> 'static' <ident> <ident> '(' <meth_decl_args> ')' <block>
+\alt <access_modifier> <ident> <ident> '(' <meth_decl_args> ')' 'override' <block>
+\alt <access_modifier> <ident> <ident> '(' <meth_decl_args> ')' 'const' 'override' <block>
+\alt <access_modifier> <ident> <ident> '(' <meth_decl_args> ')' 'const' <block>
+
+<meth_decl_args> ::= empty 
+\alt var_decl 
+\alt meth_decl_args ',' var_decl
+
+<numeric> ::= <INTEGER_VALUE>
+\alt <DOUBLE_VALUE>
+
+<access_modifier> ::= <ACCESS_MODIFIER> 
+
+<unary_expr> ::	'-' <numeric>
+\alt '!' <expr>
+
+<expr> ::= <ident> '=' expr 
+\alt <ident> '.' ident '(' ')' MULEQ expr
+\alt <ident> '.' ident '(' ')' '=' expr 
+\alt <ident> ADDEQ expr 
+\alt <ident> MULEQ expr 
+\alt <ident> '(' call_args ')'
+\alt <ident> 
+\alt <numeric>
+\alt <stringx>
+\alt <expr> '%' <expr>
+\alt <expr> '*' <expr> 
+\alt <expr> '/' <expr> 
+\alt <expr> '+' <expr> 
+\alt <expr> '-' <expr> 
+\alt <expr> EQ <expr>
+\alt <expr> '<' <expr>
+\alt '(' <expr> ')' 
+\alt <ternary_conditional_exp>
+\alt <unary_expr>
+\alt <ident> '.' <ident> '(' ')' 
+\alt <ident> '.' <ident> '(' <call_args> ')' 
+
+<ternary_conditional_exp> ::= <expr> '?' <expr> ':' <expr>
+
+<call_args> ::= empty
+\alt <expr> 
+\alt <call_args> ',' <expr>  
+
+\end{grammar}
+
+\end{document}

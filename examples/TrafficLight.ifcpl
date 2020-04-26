@@ -1,0 +1,27 @@
+module TrafficLight;
+
+import Core;
+
+enum eTrafficLightState {
+	Green,
+	Yellow,
+	YellowRed,
+	Red
+}
+
+void main() {
+	eTrafficLightState state = eTrafficLightState.Yellow;
+	
+	switch(state) {
+		case eTrafficLightState.Green:
+			print("Grün!\n");
+			break;
+		case eTrafficLightState.Yellow:
+			print("Gelb!\n");
+			break;
+			// ...
+		default:
+			print("Unbekannt!\n");
+			break;
+	}
+}

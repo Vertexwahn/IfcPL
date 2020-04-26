@@ -1,0 +1,211 @@
+// http://codereview.stackexchange.com/questions/19814/simple-turing-machine-simulator?newreg=0ff8d30075884315a502f2d2d8efd2e5
+
+module TuringMachineSimulator;
+
+import Core;
+
+enum eDirection {
+	Left,
+	Right,
+	Hold
+}
+		
+class Transition {
+	public Transition(const char input, const char write, const eDirection move, const State next) {
+		this.input = input;
+        this.write = write;
+        this.move = move;
+        this.next = next;
+	}
+	
+    public char input;
+    public char write;
+    public eDirection move;
+    public State next;
+}
+
+class State {
+	public State(const bool accept) {
+        this.id = stateId++;
+        this.accept = accept;
+        this.transitionCount = 0;
+    }
+	
+	public void add(Transition ts) {
+        if(transitionCount == MAX_TRANSITIONS) {
+            throw new Exception("State already has the maximum amount of transitions.");
+        }
+
+        // add the transition
+        transitions[transitionCount] = ts;
+        transitionCount++;
+    }
+	
+	private static int stateId = 0;	
+    public int id;
+    public int transitionCount;
+	public const int MAX_TRANSITIONS = 5;
+    public Transition [] transitions = new Transition[MAX_TRANSITIONS];
+    public bool accept;
+}
+
+class TuringMachine {
+	public TuringMachine()	{
+		current = null;
+		head = 0;
+	}
+		
+	private void debug(string str) {
+		lineNumber++;
+		print(lineNumber + ": " +  str);
+	}
+	
+	private void die(string str) {
+		throw new Exception(str);
+	}
+	
+	private State step() {
+		int i = 0;
+		char input = tape[head];
+		State state = current;
+
+		// look for a transition on the given input
+		for (int i = 0; i < state.transitionCount; i++)	{
+			Transition trans = state.transitions[i];
+			if (trans == null) throw new Exception("Transition retrieval error");
+
+			// check if this is a transition in the given char input
+			if (trans.input == input) {
+				debug("Found transition for input " + input);
+
+				State next = trans.next;
+				if (next == null) throw new Exception("Transitions to NULL state");
+
+				// write
+				debug("Writing " + trans.write);
+				tape[head] = trans.write;
+				//ModifyStringAtIndex(ref tape, head, trans.write);
+
+				debug("Writing done");
+				
+				// move the head
+				switch(trans.move) {
+					case eDirection.Left:
+						if (head > 0) {
+							head--;
+							debug("Moved head left");
+						}
+						break;
+					case eDirection.Right:
+						if (head + 1 >= tapeLength) {
+							die("Machine walked of tape on right side");
+						}
+						head++;
+						debug("Moved head right");
+						break;
+					case eDirection.Hold:
+						debug("Did not move head");
+						break;
+				}
+				
+				// move the machine to the next state
+				debug("Setting current state");
+				current = next;
+
+				return next;
+			}
+		}
+
+		return null;
+	}
+		
+	public bool run(string input) {
+		current = initialState;
+		
+		tape = input;
+		tapeLength = input.Length();
+
+		// check if the start state is configured properly
+		if (current == null) die("Turing machine has no start state");
+
+		while (true) {
+			State previousState = current;
+			State state = step();
+
+     	    if(state == null) {
+                print("Input rejected in state: " + previousState.id);
+                return false;
+            }
+			
+			if (state.accept) {
+				print("Input accepted in state: " + state.id);
+				return true;
+			}
+			
+			debug("Moved to state: " + state.id);
+		}
+	}	
+		
+    public void setInitialState(State state) {
+            initialState = state;
+    }
+
+	private static int lineNumber = 0;
+	private int tapeLength;
+    private string tape;
+	private int head;
+	
+
+    private State current;
+	private State initialState;
+}
+
+void main() {	
+	TuringMachine machine = new TuringMachine();
+    
+	State q1 = new State(false);
+	State q2 = new State(false);
+	State q3 = new State(false);
+	State q4 = new State(false);
+	State q5 = new State(false);
+	State qaccept = new State(true);
+	
+    machine.setInitialState(q1);
+	
+    Transition q1_q2_zero = new Transition('0', ' ', eDirection.Right, q2);
+    Transition q2_q2_x = new Transition('x', 'x', eDirection.Right, q2);
+    Transition q2_a_space = new Transition(' ', ' ', eDirection.Right, qaccept);
+    Transition q2_q3_zero = new Transition('0', 'x', eDirection.Right, q3);
+    Transition q3_q3_x = new Transition('x', 'x', eDirection.Right, q3);
+    Transition q3_q4_zero = new Transition('0', '0', eDirection.Right, q4);
+    Transition q3_q5_space = new Transition(' ', ' ', eDirection.Left, q5);
+    Transition q4_q3_zero = new Transition('0', 'x', eDirection.Right, q3);
+    Transition q4_q4_x = new Transition('x', 'x', eDirection.Right, q4);
+    Transition q5_q5_zero = new Transition('0', '0', eDirection.Left, q5);
+    Transition q5_q5_x = new Transition('x', 'x', eDirection.Left, q5);
+    Transition q5_q2_space = new Transition(' ', ' ', eDirection.Right, q2);
+	
+	q1.add(q1_q2_zero);
+	q2.add(q2_q2_x);
+	q2.add(q2_a_space);
+	q2.add(q2_q3_zero);
+	q3.add(q3_q3_x);
+	q3.add(q3_q4_zero);
+	q3.add(q3_q5_space);
+	q4.add(q4_q3_zero);
+	q4.add(q4_q4_x);
+	q5.add(q5_q5_zero);
+	q5.add(q5_q5_x);
+	q5.add(q5_q2_space);
+
+	string input = "0000  "; // two blanks are needed at the end of input
+	
+	bool accepted = machine.run(input);
+	 
+    if(accepted) {
+		print("Accepted!");
+	}
+	else {
+		print("Rejected!");
+	}
+}

@@ -1,0 +1,8 @@
+module ParametricProfileDescripton;
+
+import IFC4X1.exp;
+
+interface IParametricProfileDescripton {
+	IfcPropertySet getParameters();
+	IfcProfileDef getBasicProfileDescirption();
+}

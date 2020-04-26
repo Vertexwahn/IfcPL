@@ -1,0 +1,18 @@
+module PrimitiveVariableTypes;
+
+import Core;
+
+const int g_Answer = 42;
+
+void main() {
+    string message = "Hello world";
+    char charValue = 'W';
+    message[6] = charValue;
+    print(message + "!"); // Output: "Hello World!"
+    
+    double a = 3.0;
+    double v = a + 0.14;
+    
+    print("Value: " + v); // Output: "Value: 3.14"
+    print("Value: " + g_Answer); // Output: "Value: 42"
+}

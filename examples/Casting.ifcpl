@@ -1,0 +1,18 @@
+module Casting;
+
+import Core;
+
+class Wolf {}
+
+class Dog : Wolf {
+	public int getTaxId() {
+		return 1000;
+	}
+}
+
+void main() {
+	Wolf wolf = new Dog();
+	Dog dog = cast<Dog>(wolf);
+	
+	print(dog.getTaxId());
+}

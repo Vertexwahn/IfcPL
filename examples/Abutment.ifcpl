@@ -1,0 +1,207 @@
+module Abutment;
+
+import Debug;
+import Math;
+import IFC4X1.exp;
+
+interface IAbutment {
+	IfcSolidModel getSolidModel();
+}
+
+class Abutment : IAbutment {
+	public Abutment(IfcPropertySet ps) {
+		for(int i = 0; i < ps.HasProperties.count(); ++i) {
+			if (ps.HasProperties[i] instanceof IfcPropertySingleValue) {
+				IfcPropertySingleValue s = cast<IfcPropertySingleValue>(ps.HasProperties[i]);
+				IfcIdentifier s_id = s.Name;
+					
+				readReal(s, "width", width_);
+				readReal(s, "length", length_);			
+				readReal(s, "innerWingWidth", innerWingWidth_);	
+				readReal(s, "innerEndWallWidth", innerEndWallWidth_);	
+				readReal(s, "height", height_);	
+				readReal(s, "wingWidthA", wingWidthA_);	
+				readReal(s, "wingWidthB", wingWidthB_);	
+				readReal(s, "wingHeightA", wingHeightA_);	
+				readReal(s, "wingHeightB", wingHeightB_);	
+			}
+		}
+	}
+	
+	public void write() {
+		getSolidModel();
+
+		IfcStepWriter writer = new IfcStepWriter();
+		writer.write("filename.ifc", model_);
+	}
+	
+	public IfcSolidModel getSolidModel() {
+		IfcBooleanResult br = new IfcBooleanResult(id_++);
+		model_.insertEntity(br);
+		br.Operator = new IfcBooleanOperator(IfcBooleanOperator.ENUM_DIFFERENCE);
+		br.FirstOperand = createBaseMesh();
+		br.SecondOperand = createAuxiliaryMesh();
+
+		IfcCsgSolid csgSolid = new IfcCsgSolid(id_++);
+		model_.insertEntity(csgSolid);
+		csgSolid.TreeRootExpression = br;
+
+		return csgSolid;
+	}
+
+	private IfcExtrudedAreaSolid createBaseMesh() {
+		IfcExtrudedAreaSolid baseMesh = new IfcExtrudedAreaSolid(id_++);
+		model_.insertEntity(baseMesh);
+		baseMesh.SweptArea = createGroundArea();
+		baseMesh.ExtrudedDirection = createDirecton(0, 0, 1);
+		baseMesh.Depth = new IfcPositiveLengthMeasure();
+		baseMesh.Depth.m_value = scale_ * height_;
+		return baseMesh;
+	}
+	
+	private IfcArbitraryClosedProfileDef createGroundArea() {
+		IfcPolyline polyline = new IfcPolyline(id_++);
+		model_.insertEntity(polyline);
+
+		Vector2d[] points = new Vector2d[9];
+		
+		points[0] = new Vector2d(0, -width_ / 2.0); // A
+		points[1] = new Vector2d(0, width_ / 2.0); // B
+		points[2] = new Vector2d(length_, width_ / 2.0); // C
+		points[3] = new Vector2d(length_, width_ / 2.0 - innerWingWidth_); // D
+		points[4] = new Vector2d(innerEndWallWidth_, width_ / 2.0 - innerWingWidth_); // E
+		points[5] = new Vector2d(innerEndWallWidth_, -width_ / 2.0 + innerWingWidth_); // F
+		points[6] = new Vector2d(length_, -width_ / 2.0 + innerWingWidth_); // G
+		points[7] = new Vector2d(length_, -width_ / 2.0); // H
+		
+		// The OuterCurve has to be a closed curve.
+		points[8] = new Vector2d(0, -width_ / 2.0); // A
+		
+		for(int i = 0; i < 9; i++) {
+			polyline.Points.add(createPoint2D(scale_ * points[i]));
+		}
+		
+		IfcArbitraryClosedProfileDef closedProfile = new IfcArbitraryClosedProfileDef(id_++);
+		model_.insertEntity(closedProfile);
+		closedProfile.OuterCurve = polyline;
+
+		closedProfile.ProfileType = new IfcProfileTypeEnum(IfcProfileTypeEnum.ENUM_AREA);
+
+		return closedProfile;
+	}
+	
+	private	IfcArbitraryClosedProfileDef createAuxArea() {
+		IfcPolyline polyline = new IfcPolyline(id_++);
+		model_.insertEntity(polyline);
+
+		Vector2d[] points = new Vector2d[6];
+		
+		points[0] = new Vector2d(length_ - wingWidthA_, 0); // A'
+		points[1] = new Vector2d(length_ - wingWidthA_, wingHeightA_); // B'
+		points[2] = new Vector2d(length_ - wingWidthB_, wingHeightB_); // C'
+		points[3] = new Vector2d(length_, wingHeightB_); // D'
+		points[4] = new Vector2d(length_, 0.0); // E'
+														 // The OuterCurve has to be a closed curve.
+		points[5] = new Vector2d(length_ - wingWidthA_, 0); // A'
+
+		for(int i = 0; i < 6; i++) {
+			polyline.Points.add(createPoint2D(scale_ * points[i]));
+		}
+		
+		IfcArbitraryClosedProfileDef closedProfile = new IfcArbitraryClosedProfileDef(id_++);
+		model_.insertEntity(closedProfile);
+		closedProfile.OuterCurve = polyline;
+
+		closedProfile.ProfileType = new IfcProfileTypeEnum(IfcProfileTypeEnum.ENUM_AREA);
+
+		return closedProfile;
+	}
+	
+	private IfcExtrudedAreaSolid createAuxiliaryMesh() {
+		IfcAxis2Placement3D placement = new IfcAxis2Placement3D(id_++);
+		model_.insertEntity(placement);
+		placement.Location = createPoint3D(new Vector3d(0, scale_ * width_ / 2.0, 0));
+		placement.Axis = createDirecton(0.0, -1.0, 0.0);
+
+		IfcExtrudedAreaSolid baseMesh = new IfcExtrudedAreaSolid(id_++);
+		model_.insertEntity(baseMesh);
+		baseMesh.SweptArea = createAuxArea();
+		baseMesh.ExtrudedDirection = createDirecton(0, 0, 1);
+		baseMesh.Depth = new IfcPositiveLengthMeasure();
+		baseMesh.Depth.m_value = scale_ * height_;
+		baseMesh.Position = placement;
+		return baseMesh;
+	}
+		
+	private IfcDirection createDirecton(double x, double y, double z) {
+		IfcDirection dir = new IfcDirection(id_++);
+		model_.insertEntity(dir);
+		dir.DirectionRatios.add(new IfcReal(x));
+		dir.DirectionRatios.add(new IfcReal(y));
+		dir.DirectionRatios.add(new IfcReal(z));
+		return dir;
+	}
+	
+	private IfcCartesianPoint createPoint3D(Vector3d v) {
+		IfcCartesianPoint point = new IfcCartesianPoint(id_++);
+		model_.insertEntity(point);
+		point.Coordinates.add(new IfcLengthMeasure(v.x()));
+		point.Coordinates.add(new IfcLengthMeasure(v.y()));
+		point.Coordinates.add(new IfcLengthMeasure(v.z()));
+		return point;
+	}
+	
+	private IfcCartesianPoint createPoint2D(Vector2d v) {
+		IfcCartesianPoint point = new IfcCartesianPoint(id_++);
+		model_.insertEntity(point);
+		point.Coordinates.add(new IfcLengthMeasure(v.x()));
+		point.Coordinates.add(new IfcLengthMeasure(v.y()));
+		return point;
+	}
+	
+	private void readReal(IfcPropertySingleValue ifcPSV, string name, ref double outValue) {
+		IfcIdentifier s_id = ifcPSV.Name;
+								
+		if(s_id.value == name) {
+			IfcReal ifcReal = cast<IfcReal>(ifcPSV.NominalValue);
+			outValue = ifcReal.value;
+		}
+	}
+	
+	private IFC4X1Model model_ = new IFC4X1Model();
+	
+	private int id_ = 5000;
+	
+	private double width_ = 5;
+	private double length_ = 4.5;
+	private double innerWingWidth_ = 1;
+	private double innerEndWallWidth_ = 1;
+	private double height_ = 5;
+
+	// Auxiliary geometry
+	private double wingWidthA_ = 2.5;
+	private double wingWidthB_ = 1.0;
+	private double wingHeightA_ = 3.0;
+	private double wingHeightB_ = 4.0;
+
+	private double scale_ = 1000;
+}
+
+void main() {
+	int id = 1000;
+			
+	IfcPropertySet ps = new IfcPropertySet();
+	
+	IfcPropertySingleValue width = new IfcPropertySingleValue(id++);
+	width.Name = new IfcIdentifier("width");
+	width.NominalValue = new IfcReal(5.0);
+	ps.HasProperties.add(width);
+	
+	IfcPropertySingleValue length = new IfcPropertySingleValue(id++);
+	length.Name = new IfcIdentifier("length");
+	length.NominalValue = new IfcReal(4.5);
+	ps.HasProperties.add(length);
+	
+	Abutment myAbutment = new Abutment(ps);	
+	myAbutment.write();
+}

@@ -1,0 +1,40 @@
+import IFC4_P6_longform_draft5.exp;
+
+/*
+// C++ Interface
+class ISimulation
+{
+	public:
+		virtual void std::string simulate() = 0;
+}
+*/
+
+class EngerySimulation : ISimulation {
+	public RALChecker(IfcPropertrySet ps) {
+		alignment_ = ps.get<IfcAlignment>();
+	}
+	
+	public string simulate() override {
+		double energy = 0.0;
+	
+		for(IfcLineSegment2D line : alignment) {  // visit each IfcLineSegment2D element
+			energy += line.SegmentLength;
+		}
+		
+		string result = "Total energy = " + energy;
+		
+		return result;
+	}
+	
+	private bool checkMaximumIfcLineSegment2D() {
+		// input property set provides IfcAlignment named alignment
+		for(IfcLineSegment2D line : alignment) {  // visit each IfcLineSegment2D element
+			if(line.SegmentLength > 1500) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	private IfcAlignment alignment_;
+}

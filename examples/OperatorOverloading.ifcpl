@@ -1,0 +1,34 @@
+module OperatorOverloading;
+
+import Core;
+
+class Vector2i {
+	public Vector2i(const int x, const int y) {
+		values[0] = x;
+		values[1] = y;
+	}
+	
+	public ref int operator[](const int index) {
+		return values[index];
+	}
+		
+	private int[] values = new int[2];
+}
+
+Vector2i operator+(const Vector2i a, const Vector2i b) {
+	return new Vector2i(a[0]+b[0], a[1]+b[1]);
+}
+	
+void main() {	
+	Vector2i a = new Vector2i(1,2);
+	Vector2i b = new Vector2i(2,2);
+	
+	print("(" + a[0] + ", " + a[1] + ")\n"); // Ausgabe: (1, 2)
+	
+	a[0] = 2;
+	
+	print("(" + a[0] + ", " + a[1] + ")\n"); // Ausgabe: (2, 2)
+	
+	Vector2i c = a + b;
+	print("Result (" + c[0] + ", " + c[1] + ")\n"); // Ausgabe: Result (4, 4)
+}

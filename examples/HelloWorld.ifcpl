@@ -1,0 +1,7 @@
+module HelloWorld;
+
+import Core;
+
+void main() {
+	print("hello, world\n");
+}

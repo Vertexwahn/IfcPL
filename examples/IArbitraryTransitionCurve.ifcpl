@@ -1,0 +1,12 @@
+module ArbitraryTransitionCurve;
+
+interface IVector2D {
+	double X() const;
+	double Y() const;
+}
+
+interface IArbitraryTransitionCurve {
+	double getLength() const;
+	IVector2D getPostion(const double lerpParamter) const;
+	double getCurvature(const double lerpParamter) const;
+}

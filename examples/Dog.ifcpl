@@ -1,0 +1,48 @@
+module Dog;
+
+import Core;
+
+class Wolf {
+	public Wolf(const int age, const string name) {
+		this.age = age;
+		this.name = name;
+	}
+
+	public string getName() {
+		return name;
+	}
+	
+	public virtual string toString() {
+		return "Wolf";
+	}
+	
+	protected string name; 
+	protected int age;
+}
+
+class Dog : Wolf {
+	public Dog(const int age, const string name) : base(age, name) {
+	
+	}
+	
+	public int getTaxId() {
+		return taxIdentificationNumber;
+	}
+	
+	public string toString() {
+		return "Dog";
+	}
+	
+	private int taxIdentificationNumber;
+}
+
+void main() {
+	Wolf[] packOfWolves = new Wolf[2];
+	
+	packOfWolves[0] = new Wolf(2, "Böser Wolf");
+	packOfWolves[1] = new Dog(1, "Daisy");
+	
+	for(int i = 0; i < 2; i++) {
+		print(packOfWolves[i].getName() + " is a " + packOfWolves[i].toString());
+	}
+}

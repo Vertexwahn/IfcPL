@@ -1,0 +1,3 @@
+syntax: glob
+examples/test.txt
+examples/cmake.txt

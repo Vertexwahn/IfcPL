@@ -1,0 +1,14 @@
+module Factorial;
+
+import Core;
+
+int factorial(const int n) {
+	if(n==1)
+		return 1;
+	else
+		return n * factorial(n-1);
+}
+
+void main() {
+	print(factorial(5)); // Ausgabe: "120"
+}
